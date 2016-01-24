@@ -4500,37 +4500,30 @@ static ssize_t show_slab_objects(struct kmem_cache *s,
 
 		for_each_possible_cpu(cpu) {
 			struct kmem_cache_cpu *c = per_cpu_ptr(s->cpu_slab, cpu);
-			int node = ACCESS_ONCE(c->node);
 			struct page *page;
 
-			if (node < 0)
+			if (!c || c->node < 0)
 				continue;
-			page = ACCESS_ONCE(c->page);
-			if (page) {
-				if (flags & SO_TOTAL)
-					x = page->objects;
+
+			if (c->page) {
+					if (flags & SO_TOTAL)
+						x = c->page->objects;
 				else if (flags & SO_OBJECTS)
-					x = page->inuse;
+					x = c->page->inuse;
 				else
 					x = 1;
 
 				total += x;
-				nodes[node] += x;
+				nodes[c->node] += x;
 			}
 			page = c->partial;
 
 			if (page) {
-				node = page_to_nid(page);
-				if (flags & SO_TOTAL)
-					WARN_ON_ONCE(1);
-				else if (flags & SO_OBJECTS)
-					WARN_ON_ONCE(1);
-				else
-					x = page->pages;
-				total += x;
-				nodes[node] += x;
+				x = page->pobjects;
+                                total += x;
+                                nodes[c->node] += x;
 			}
-			per_cpu[node]++;
+			per_cpu[c->node]++;
 		}
 	}
 
